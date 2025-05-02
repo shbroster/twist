@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"reflect"
 	"strings"
-	"unicode"
 )
 
 var delimitStart = "{{"
@@ -27,9 +26,9 @@ var (
 // - Parse; parse a populated string template and extract data into a struct
 // - TODO...
 type twist struct {
-	original string
-	fields   []string
-	pretext  []string
+	original     string
+	fieldParts   []StrPart
+	pretextParts []StrPart
 }
 
 // New creates a 'twist', errors if the template is invald.
@@ -39,66 +38,32 @@ func New(s string) (twist, error) {
 		return twist{}, err
 	}
 	return twist{
-		original: s,
-		fields:   result[0],
-		pretext:  result[1],
+		original:     s,
+		fieldParts:   result[0],
+		pretextParts: result[1],
 	}, nil
 }
 
-func extractFields(s string) ([2][]string, error) {
-	var fields []string = []string{}
-	var pretext []string = []string{}
-
-	for {
-		start := strings.Index(s, delimitStart)
-		end := strings.Index(s, delimitEnd)
-		nextStart := -1
-		if end != -1 {
-			offset := start + len(delimitStart)
-			if index := strings.Index(s[offset:], delimitStart); index == -1 {
-				nextStart = index
-			} else {
-				nextStart = index + offset
-			}
-		}
-		if start == -1 && end == -1 {
-			break
-		} else if start == -1 || end < start {
-			return [2][]string{{}, {}}, fmt.Errorf("unmatched delimiters: %w", ErrInvalidTemplate)
-		} else if nextStart != -1 && nextStart < end {
-			return [2][]string{{}, {}}, fmt.Errorf("nested delimiters: %w", ErrInvalidTemplate)
-		}
-
-		field := strings.TrimSpace(s[start+len(delimitStart) : end])
-		if valid, reason := isValidField(field); !valid {
-			return [2][]string{{}, {}}, fmt.Errorf("%s: %w", reason, ErrInvalidField)
-		}
-		fields = append(fields, field)
-		pretext = append(pretext, s[:start])
-		s = s[end+len(delimitEnd):]
+func (t twist) fields() []string {
+	result := make([]string, len(t.fieldParts))
+	for i, p := range t.fieldParts {
+		result[i] = p.String()
 	}
-	pretext = append(pretext, s)
-	return [2][]string{fields, pretext}, nil
+	return result
 }
 
-func isValidField(field string) (bool, string) {
-	if len(field) == 0 {
-		return false, "must not be empty"
+func (t twist) pretext() []string {
+	result := make([]string, len(t.pretextParts))
+	for i, p := range t.pretextParts {
+		result[i] = p.String()
 	}
-	r := rune(field[0])
-	if !(unicode.IsUpper(r)) {
-		return false, "must start with an uppercase letter"
-	}
-	for _, r := range field {
-		if !(unicode.IsLetter(r) || unicode.IsDigit(r) || r == '_') {
-			return false, "must contain only letters, digits, and underscores"
-		}
-	}
-	return true, ""
+	return result
 }
 
 // Execute executes the template with the given data and returns the generated string.
 func (t twist) Execute(data any) (string, error) {
+	fields := t.fields()
+	pretext := t.pretext()
 
 	// Convert data to a map[string]string
 	dataMap := make(map[string]string)
@@ -110,7 +75,7 @@ func (t twist) Execute(data any) (string, error) {
 
 	switch v.Kind() {
 	case reflect.Struct:
-		for _, field := range t.fields {
+		for _, field := range fields {
 			value := v.FieldByName(field)
 			if !value.IsValid() {
 				return "", fmt.Errorf("field '%s' is missing: %w", field, ErrInvalidField)
@@ -136,64 +101,45 @@ func (t twist) Execute(data any) (string, error) {
 
 	// Construct the result string
 	var result string
-	for i, field := range t.fields {
+	for i, field := range fields {
 		// access a variable dynamically from any object of type any
 		dataField, ok := dataMap[field]
 		if !ok {
 			return "", fmt.Errorf("field '%s' is missing: %w", field, ErrInvalidField)
 		}
-		result += fmt.Sprintf("%s%s", t.pretext[i], dataField)
+		result += fmt.Sprintf("%s%s", pretext[i], dataField)
 	}
-	result += t.pretext[len(t.pretext)-1]
+	result += pretext[len(pretext)-1]
 	return result, nil
-}
-
-func toString(v interface{}) (string, error) {
-	if reflect.TypeOf(v).Kind() == reflect.Ptr {
-		v = reflect.ValueOf(v).Elem().Interface()
-	}
-	switch val := v.(type) {
-	case string:
-		return val, nil
-	case int, int8, int16, int32, int64,
-		uint, uint8, uint16, uint32, uint64,
-		float32, float64,
-		bool:
-		return fmt.Sprintf("%v", v), nil
-	case fmt.Stringer:
-		return val.String(), nil
-
-	default:
-		return "", errors.New("value cannot be converted to string")
-	}
 }
 
 func (t twist) findFieldIndicies(s string) ([][][2]int, error) {
 	results := [][][2]int{}
+	pretext := t.pretext()
 
 	// If there are any fields, these will be at least 2 pretexts
-	if len(t.pretext) <= 1 {
-		if s == t.pretext[0] {
+	if len(pretext) <= 1 {
+		if s == pretext[0] {
 			return [][][2]int{{}}, nil
 		}
-		return nil, fmt.Errorf("string does not match template: %w", ErrTemplateMismatch)
+		return nil, fmt.Errorf("string start does not match template: %w", ErrTemplateMismatch)
 	}
 
 	// The last pretext can never be part of the match so check that it matches
 	// and then it can be excluded from all searches.
-	lastPretext := t.pretext[len(t.pretext)-1]
+	lastPretext := pretext[len(pretext)-1]
 	sEnd := len(s) - len(lastPretext)
 	if s[sEnd:] != lastPretext {
-		return nil, fmt.Errorf("string does not match template: %w", ErrTemplateMismatch)
+		return nil, fmt.Errorf("string end does not match template: %w", ErrTemplateMismatch)
 	}
 
 	// Function to recursively search for possible pretext mathces.
 	var search func(start, pretext int, result [][2]int)
-	search = func(start, pretext int, result [][2]int) {
+	search = func(start, pretextIdx int, result [][2]int) {
 		// If we've matches all pretexts, save the result and then return so that we can
 		// look for other potential matches.
-		if pretext == len(t.pretext)-1 {
-			result[pretext-1][1] = sEnd
+		if pretextIdx == len(pretext)-1 {
+			result[pretextIdx-1][1] = sEnd
 			var resultCopy = make([][2]int, len(result))
 			copy(resultCopy, result)
 			results = append(results, resultCopy)
@@ -201,7 +147,7 @@ func (t twist) findFieldIndicies(s string) ([][][2]int, error) {
 		}
 
 		for i := 0; ; {
-			pretextStr := t.pretext[pretext]
+			pretextStr := pretext[pretextIdx]
 			offset := start + i
 			match := strings.Index(s[offset:sEnd], pretextStr)
 			i = i + match + 1
@@ -211,21 +157,21 @@ func (t twist) findFieldIndicies(s string) ([][][2]int, error) {
 				return
 			}
 
-			// Get start of this match
+			// Store the start of this match
 			indexStart := match + offset + len(pretextStr)
 			result = append(result, [2]int{indexStart, 0})
 
-			// Update the end for the previous match
-			if pretext > 0 {
-				result[pretext-1][1] = match + offset
+			// Store the end for the previous match
+			if pretextIdx > 0 {
+				result[pretextIdx-1][1] = match + offset
 			}
 
 			// Search for the next pretext
-			search(indexStart, pretext+1, result)
+			search(indexStart, pretextIdx+1, result)
 			result = result[:len(result)-1]
 
 			// The first match is fixed so don't conisder other options
-			if pretext == 0 {
+			if pretextIdx == 0 {
 				return
 			}
 		}
@@ -257,7 +203,7 @@ func (t twist) ParseFields(s string) (map[string]string, error) {
 	}
 
 	result := map[string]string{}
-	for i, field := range t.fields {
+	for i, field := range t.fields() {
 		result[field] = s[indicies[0][i][0]:indicies[0][i][1]]
 	}
 	return result, nil

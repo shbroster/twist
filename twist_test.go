@@ -309,10 +309,10 @@ func TestNewRevTempl(t *testing.T) {
 			if diff := cmp.Diff(got.original, tt.template); diff != "" {
 				t.Errorf("original mismatch (-got +want)\n%s", diff)
 			}
-			if diff := cmp.Diff(got.fields, tt.expectedFields); diff != "" {
+			if diff := cmp.Diff(got.fields(), tt.expectedFields); diff != "" {
 				t.Errorf("fields mismatch (-got +want)\n%s", diff)
 			}
-			if diff := cmp.Diff(got.pretext, tt.expectedPretext); diff != "" {
+			if diff := cmp.Diff(got.pretext(), tt.expectedPretext); diff != "" {
 				t.Errorf("pretext mismatch (-got +want)\n%s", diff)
 			}
 		})
