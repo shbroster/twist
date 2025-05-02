@@ -641,44 +641,44 @@ func TestParseFields(t *testing.T) {
 // 	})
 // }
 
-// func TestParse(t *testing.T) {
-// 	type testCase struct {
-// 		name     string
-// 		template string
-// 		result   string
-// 		out      any
-// 		want     any
-// 	}
+func TestParse(t *testing.T) {
+	type testCase struct {
+		name     string
+		template string
+		result   string
+		out      any
+		want     any
+	}
 
-// 	tests := []testCase{
-// 		{
-// 			name:     "basic",
-// 			template: "Hello, {{Name}}",
-// 			result:   "Hello, World",
-// 			out: &struct {
-// 				Name string
-// 			}{},
-// 			want: &struct {
-// 				Name string
-// 			}{
-// 				Name: "World",
-// 			},
-// 		},
-// 	}
+	tests := []testCase{
+		{
+			name:     "basic",
+			template: "Hello, {{Name}}",
+			result:   "Hello, World",
+			out: &struct {
+				Name string
+			}{},
+			want: &struct {
+				Name string
+			}{
+				Name: "World",
+			},
+		},
+	}
 
-// 	for _, tt := range tests {
-// 		t.Run(tt.name, func(t *testing.T) {
-// 			tmpl, err := New(tt.template)
-// 			if err != nil {
-// 				t.Errorf("New() error = %v", err)
-// 			}
-// 			err = tmpl.Parse(tt.result, tt.out)
-// 			if err != nil {
-// 				t.Errorf("New.Parse() error = %v", err)
-// 			}
-// 			if diff := cmp.Diff(tt.out, tt.want); diff != "" {
-// 				t.Errorf("Parse() mismatch (-got +want)\n%s", diff)
-// 			}
-// 		})
-// 	}
-// }
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			tmpl, err := New(tt.template)
+			if err != nil {
+				t.Errorf("New() error = %v", err)
+			}
+			err = tmpl.Parse(tt.result, tt.out)
+			if err != nil {
+				t.Errorf("New.Parse() error = %v", err)
+			}
+			if diff := cmp.Diff(tt.out, tt.want); diff != "" {
+				t.Errorf("Parse() mismatch (-got +want)\n%s", diff)
+			}
+		})
+	}
+}
