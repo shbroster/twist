@@ -126,11 +126,14 @@ func TestDecodeSucess(t *testing.T) {
 			}
 			v := reflect.ValueOf(tt.out).Elem().FieldByName("Field").Interface()
 			if diff := cmp.Diff(v, tt.want); diff != "" {
-				t.Errorf("decode() = %v, want %v", tt.out, tt.want)
+				t.Errorf("deocde() mismatch (-got +want)\n%s", diff)
 				return
 			}
 		})
 	}
+}
+
+func TestDecodeMultipleSuccess(t *testing.T) {
 
 	var out struct {
 		Field1 string
@@ -166,10 +169,59 @@ func TestDecodeSucess(t *testing.T) {
 		t.Errorf("decode() error = %v", err)
 		return
 	}
-
 	if diff := cmp.Diff(out, *want); diff != "" {
-		t.Errorf("decode() = %v, want %v", out, want)
+		t.Errorf("deocde() mismatch (-got +want)\n%s", diff)
 		return
+	}
+}
+
+func TestDecodeInterfaceSuccess(t *testing.T) {
+	type empty interface{}
+	type nested interface{ empty }
+	type testStruct struct {
+		Field1 string
+	}
+
+	var emptyOut empty = &testStruct{
+		Field1: "123",
+	}
+	var nestedOut nested = &testStruct{
+		Field1: "123",
+	}
+
+	input := map[string]string{
+		"Field1": "123",
+	}
+	want := &testStruct{
+		Field1: "123",
+	}
+
+	tests := []struct {
+		name string
+		out  any
+	}{
+		{
+			name: "empty",
+			out:  emptyOut,
+		},
+		{
+			name: "nested",
+			out:  nestedOut,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := decode(input, tt.out)
+			if err != nil {
+				t.Errorf("decode() error = %v", err)
+				return
+			}
+			if diff := cmp.Diff(tt.out, want); diff != "" {
+				t.Errorf("deocde() mismatch (-got +want)\n%s", diff)
+				return
+			}
+		})
 	}
 }
 
@@ -186,18 +238,39 @@ func TestDecodeError(t *testing.T) {
 
 	tests := []testCase{
 		{
-			name:      "invalid type",
-			input:     map[string]string{"Field": "NaN"},
+			name:      "invalid int",
+			input:     map[string]string{"Field": "str"},
 			out:       &struct{ Field int }{},
 			errorType: ErrInvalidField,
 			errorMsg:  "field 'Field' cannot be converted to supplied type: invalid field",
+		},
+		{
+			name:      "invalid float",
+			input:     map[string]string{"Field": "str"},
+			out:       &struct{ Field float64 }{},
+			errorType: ErrInvalidField,
+			errorMsg:  "field 'Field' cannot be converted to supplied type: invalid field",
+		},
+		{
+			name:      "invalid bool",
+			input:     map[string]string{"Field": "str"},
+			out:       &struct{ Field bool }{},
+			errorType: ErrInvalidField,
+			errorMsg:  "field 'Field' cannot be converted to supplied type: invalid field",
+		},
+		{
+			name:      "unsupported type",
+			input:     map[string]string{"Field": "str"},
+			out:       &struct{ Field complex128 }{},
+			errorType: ErrInvalidField,
+			errorMsg:  "field 'Field' is not a supported type: invalid field",
 		},
 		{
 			name:      "string not a pointer",
 			input:     map[string]string{},
 			out:       struct{ Field int }{},
 			errorType: ErrInvalidArgument,
-			errorMsg:  "out must be a pointer but got 'struct'",
+			errorMsg:  "out must be a non-nil pointer but got 'struct'",
 		},
 		{
 			name:      "string not a pointer to a struct",
@@ -205,6 +278,13 @@ func TestDecodeError(t *testing.T) {
 			out:       &testString,
 			errorType: ErrInvalidArgument,
 			errorMsg:  "out must point to a struct but got 'string'",
+		},
+		{
+			name:      "missing field",
+			input:     map[string]string{"Field1": "test", "Field2": "test"},
+			out:       &struct{ Field1 string }{},
+			errorType: ErrInvalidData,
+			errorMsg:  "field 'Field2' is missing: invalid data",
 		},
 	}
 

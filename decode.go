@@ -9,12 +9,14 @@ import (
 func decode(input map[string]string, out any) error {
 	// Validate that 'out' is a pointer to a struct
 	outVal := reflect.ValueOf(out)
-	if kind := outVal.Kind(); kind != reflect.Ptr {
-		return fmt.Errorf("out must be a pointer but got '%s': %w", kind, ErrInvalidArgument)
+	if kind := outVal.Kind(); kind != reflect.Ptr || outVal.IsNil() {
+		return fmt.Errorf("out must be a non-nil pointer but got '%s': %w", kind, ErrInvalidArgument)
 	}
-	outVal = outVal.Elem()
-	if outVal.Kind() == reflect.Interface {
+	for outVal.Kind() == reflect.Ptr || outVal.Kind() == reflect.Interface {
 		outVal = outVal.Elem()
+		if !outVal.IsValid() {
+			return fmt.Errorf("out must point to a valid struct: %w", ErrInvalidArgument)
+		}
 	}
 	if outVal.Kind() != reflect.Struct {
 		return fmt.Errorf("out must point to a struct but got '%s': %w", outVal.Kind(), ErrInvalidArgument)
@@ -22,15 +24,7 @@ func decode(input map[string]string, out any) error {
 
 	// Write fields to the data struct and convert to the correct type
 	for key, value := range input {
-		val := reflect.ValueOf(out)
-		if val.Kind() == reflect.Ptr {
-			val = val.Elem()
-		}
-		for val.Kind() == reflect.Interface {
-			val = val.Elem()
-		}
-		field := val.FieldByName(key)
-
+		field := outVal.FieldByName(key)
 		if !field.IsValid() {
 			return fmt.Errorf("field '%s' is missing: %w", key, ErrInvalidData)
 		}
@@ -79,14 +73,14 @@ func decode(input map[string]string, out any) error {
 			if field.Kind() == reflect.Float32 {
 				bitSize = 32
 			}
-			boolValue, err := strconv.ParseFloat(value, bitSize)
+			floatValue, err := strconv.ParseFloat(value, bitSize)
 			if err != nil {
 				return fmt.Errorf("field '%s' cannot be converted to supplied type: %w", key, ErrInvalidField)
 			}
-			field.SetFloat(boolValue)
+			field.SetFloat(floatValue)
 
 		default:
-			return fmt.Errorf("field '%s' is not a supported type: %w", key, ErrInvalidData)
+			return fmt.Errorf("field '%s' is not a supported type: %w", key, ErrInvalidField)
 		}
 	}
 	return nil
