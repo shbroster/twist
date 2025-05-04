@@ -2,11 +2,89 @@ package twist
 
 import (
 	"errors"
+	"fmt"
 	"strings"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
 )
+
+func TestMainLine(t *testing.T) {
+	type Account struct {
+		CustomerId string
+		AccountId  string
+	}
+	testAccount := Account{
+		CustomerId: "1234567890",
+		AccountId:  "1234567890",
+	}
+	fmtStr := "CU#%s#AC#%s#"
+	expectedString := fmt.Sprintf(fmtStr, testAccount.CustomerId, testAccount.AccountId)
+	templateString := fmt.Sprintf(fmtStr, "{{CustomerId}}", "{{AccountId}}")
+	var out = Account{}
+
+	twist, err := New(templateString)
+	if err != nil {
+		t.Errorf("New() error = %v", err)
+		return
+	}
+
+	key, err := twist.Execute(testAccount)
+	if err != nil {
+		t.Errorf("Execute() error = %v", err)
+		return
+	}
+	if key != expectedString {
+		t.Errorf("key = %v, want %v", key, expectedString)
+		return
+	}
+
+	fieldsMap, err := twist.ParseToMap(key)
+	if err != nil {
+		t.Errorf("ParseToMap() error = %v", err)
+		return
+	}
+	if fieldsMap["CustomerId"] != testAccount.CustomerId {
+		t.Errorf("fieldsMap[CustomerId] = %v, want %v", fieldsMap["CustomerId"], testAccount.CustomerId)
+		return
+	}
+	if fieldsMap["AccountId"] != testAccount.AccountId {
+		t.Errorf("fieldsMap[AccountId] = %v, want %v", fieldsMap["AccountId"], testAccount.AccountId)
+		return
+	}
+
+	fieldsMaps, err := twist.ParseToMaps(key)
+	if err != nil {
+		t.Errorf("ParseToMap() error = %v", err)
+		return
+	}
+	if len(fieldsMaps) != 1 {
+		t.Errorf("len(fieldsMaps) = %v, want %v", len(fieldsMaps), 1)
+		return
+	}
+	if fieldsMaps[0]["CustomerId"] != testAccount.CustomerId {
+		t.Errorf("fieldsMaps[0][CustomerId] = %v, want %v", fieldsMaps[0]["CustomerId"], testAccount.CustomerId)
+		return
+	}
+	if fieldsMaps[0]["AccountId"] != testAccount.AccountId {
+		t.Errorf("fieldsMaps[0][AccountId] = %v, want %v", fieldsMaps[0]["AccountId"], testAccount.AccountId)
+		return
+	}
+
+	err = twist.Parse(key, &out)
+	if err != nil {
+		t.Errorf("Parse() error = %v", err)
+		return
+	}
+	if out.CustomerId != testAccount.CustomerId {
+		t.Errorf("out.CustomerId = %v, want %v", out.CustomerId, testAccount.CustomerId)
+		return
+	}
+	if out.AccountId != testAccount.AccountId {
+		t.Errorf("out.AccountId = %v, want %v", out.AccountId, testAccount.AccountId)
+		return
+	}
+}
 
 func TestNewSuccess(t *testing.T) {
 	type testCase struct {
@@ -368,44 +446,103 @@ func TestParseToMapError(t *testing.T) {
 	}
 }
 
-// func FuzzParseField(f *testing.F) {
-// 	// Add seed values to help the fuzzer
-// 	f.Add("Hello {{Name}}", "Name:John")
-// 	f.Add("GR#{{Greeting}}#NR#{{Name}}", "Greeting:Hi,Name:John")
+func TestParseToMapsSuccess(t *testing.T) {
+	type testCase struct {
+		name     string
+		template string
+		result   string
+		want     []map[string]string
+	}
 
-// 	f.Fuzz(func(t *testing.T, template string, dataStr string) {
-// 		if len(dataStr) < 3 || !strings.Contains(template, "{{") || !strings.Contains(template, "}}") {
-// 			t.Skip()
-// 		}
+	tests := []testCase{
+		{
+			name:     "basic",
+			template: "Hello, {{Name}}",
+			result:   "Hello, World",
+			want: []map[string]string{
+				{
+					"Name": "World",
+				},
+			},
+		},
+		{
+			name:     "multiple fields",
+			template: "Hello, {{Name}} {{Age}}",
+			result:   "Hello, Tom Bombadil 25",
+			want: []map[string]string{
+				{
+					"Name": "Tom",
+					"Age":  "Bombadil 25",
+				},
+				{
+					"Name": "Tom Bombadil",
+					"Age":  "25",
+				},
+			},
+		},
+	}
 
-// 		// Parse the data string into a map
-// 		data := make(map[string]string)
-// 		pairs := strings.Split(dataStr, ",")
-// 		for _, pair := range pairs {
-// 			parts := strings.SplitN(pair, ":", 2)
-// 			if len(parts) != 2 || parts[0] == "" || parts[1] == "" {
-// 				t.Skip() // Skip invalid data format
-// 			}
-// 			data[parts[0]] = parts[1]
-// 		}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			tmpl, err := New(tt.template)
+			if err != nil {
+				t.Errorf("New() error = %v", err)
+				return
+			}
+			out, err := tmpl.ParseToMaps(tt.result)
+			if err != nil {
+				t.Errorf("ParseToMaps() error = %v", err)
+				return
+			}
+			if diff := cmp.Diff(out, tt.want); diff != "" {
+				t.Errorf("ParseToMaps() mismatch (-got +want)\n%s", diff)
+			}
+		})
+	}
+}
 
-// 		tmpl, err := New(template)
-// 		if err != nil {
-// 			t.Skip()
-// 		}
-// 		result, err := tmpl.Execute(data)
-// 		if err != nil {
-// 			t.Skip()
-// 		}
-// 		out, err := tmpl.ParseFields(result)
-// 		if err != nil {
-// 			t.Skip()
-// 		}
-// 		if diff := cmp.Diff(out, data); diff != "" {
-// 			t.Errorf("Mismatch\n template: '%s'\n map data: '%s'\n result  : '%s'\n (-got +want)\n%s", template, data, result, diff)
-// 		}
-// 	})
-// }
+func TestParseToMapsError(t *testing.T) {
+	type testCase struct {
+		name      string
+		template  string
+		result    string
+		errorType error
+		errorMsg  string
+	}
+
+	tests := []testCase{
+		{
+			name:      "mismatch",
+			template:  "a",
+			result:    "b",
+			errorType: ErrTemplateMismatch,
+			errorMsg:  "strings do not match",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			tmpl, err := New(tt.template)
+			if err != nil {
+				t.Errorf("New() error = %v", err)
+				return
+			}
+			_, err = tmpl.ParseToMaps(tt.result)
+			if err == nil {
+				t.Errorf("ParseToMaps() error is nil")
+				return
+			}
+			if !errors.Is(err, tt.errorType) {
+				t.Errorf("ParseToMaps() error type = %v, want type %v", err, tt.errorType)
+				return
+			}
+			if !strings.Contains(err.Error(), tt.errorMsg) {
+				t.Errorf("ParseToMaps() error = %v, want to contain %v", err, tt.errorMsg)
+				return
+			}
+		})
+	}
+}
 
 func TestParse(t *testing.T) {
 	type testCase struct {

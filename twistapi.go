@@ -65,7 +65,10 @@ func (t twist) ParseToMaps(s string) ([]map[string]string, error) {
 		return nil, err
 	}
 
-	result := []map[string]string{}
+	result := make([]map[string]string, len(allIndicies))
+	for i := range result {
+		result[i] = make(map[string]string)
+	}
 	for i, field := range t.fields() {
 		for j, indicies := range allIndicies {
 			result[j][field] = s[indicies[i][0]:indicies[i][1]]
