@@ -20,69 +20,106 @@ func TestMainLine(t *testing.T) {
 	}
 	fmtStr := "CU#%s#AC#%s#"
 	expectedString := fmt.Sprintf(fmtStr, testAccount.CustomerId, testAccount.AccountId)
-	templateString := fmt.Sprintf(fmtStr, "{{CustomerId}}", "{{AccountId}}")
-	var out = Account{}
 
-	twist, err := New(templateString)
-	if err != nil {
-		t.Errorf("New() error = %v", err)
-		return
+	type testCase struct {
+		name       string
+		delimiters [2]string
 	}
 
-	key, err := twist.Execute(testAccount)
-	if err != nil {
-		t.Errorf("Execute() error = %v", err)
-		return
-	}
-	if key != expectedString {
-		t.Errorf("key = %v, want %v", key, expectedString)
-		return
-	}
-
-	fieldsMap, err := twist.ParseToMap(key)
-	if err != nil {
-		t.Errorf("ParseToMap() error = %v", err)
-		return
-	}
-	if fieldsMap["CustomerId"] != testAccount.CustomerId {
-		t.Errorf("fieldsMap[CustomerId] = %v, want %v", fieldsMap["CustomerId"], testAccount.CustomerId)
-		return
-	}
-	if fieldsMap["AccountId"] != testAccount.AccountId {
-		t.Errorf("fieldsMap[AccountId] = %v, want %v", fieldsMap["AccountId"], testAccount.AccountId)
-		return
+	tests := []testCase{
+		{
+			name:       "default",
+			delimiters: [2]string{"{{", "}}"},
+		},
+		{
+			name:       "custom",
+			delimiters: [2]string{"[", "]"},
+		},
+		{
+			name:       "unbalanced 1",
+			delimiters: [2]string{"{{{", "]"},
+		},
+		{
+			name:       "unbalanced 2",
+			delimiters: [2]string{"{", "]]"},
+		},
 	}
 
-	fieldsMaps, err := twist.ParseToMaps(key)
-	if err != nil {
-		t.Errorf("ParseToMap() error = %v", err)
-		return
-	}
-	if len(fieldsMaps) != 1 {
-		t.Errorf("len(fieldsMaps) = %v, want %v", len(fieldsMaps), 1)
-		return
-	}
-	if fieldsMaps[0]["CustomerId"] != testAccount.CustomerId {
-		t.Errorf("fieldsMaps[0][CustomerId] = %v, want %v", fieldsMaps[0]["CustomerId"], testAccount.CustomerId)
-		return
-	}
-	if fieldsMaps[0]["AccountId"] != testAccount.AccountId {
-		t.Errorf("fieldsMaps[0][AccountId] = %v, want %v", fieldsMaps[0]["AccountId"], testAccount.AccountId)
-		return
-	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			customerPlaceholder := fmt.Sprintf("%s%s%s", tt.delimiters[0], "CustomerId", tt.delimiters[1])
+			accountPlaceholder := fmt.Sprintf("%s%s%s", tt.delimiters[0], "AccountId", tt.delimiters[1])
+			templateString := fmt.Sprintf(fmtStr, customerPlaceholder, accountPlaceholder)
+			var out = Account{}
 
-	err = twist.Parse(key, &out)
-	if err != nil {
-		t.Errorf("Parse() error = %v", err)
-		return
-	}
-	if out.CustomerId != testAccount.CustomerId {
-		t.Errorf("out.CustomerId = %v, want %v", out.CustomerId, testAccount.CustomerId)
-		return
-	}
-	if out.AccountId != testAccount.AccountId {
-		t.Errorf("out.AccountId = %v, want %v", out.AccountId, testAccount.AccountId)
-		return
+			var twist twist
+			var err error
+			if tt.delimiters == [2]string{"{{", "}}"} {
+				twist, err = New(templateString)
+			} else {
+				twist, err = NewWithConfig(templateString, TwistConfig{Delimiters: tt.delimiters})
+			}
+			if err != nil {
+				t.Errorf("New() error = %v", err)
+				return
+			}
+
+			key, err := twist.Execute(testAccount)
+			if err != nil {
+				t.Errorf("Execute() error = %v", err)
+				return
+			}
+			if key != expectedString {
+				t.Errorf("key = %v, want %v", key, expectedString)
+				return
+			}
+
+			fieldsMap, err := twist.ParseToMap(key)
+			if err != nil {
+				t.Errorf("ParseToMap() error = %v", err)
+				return
+			}
+			if fieldsMap["CustomerId"] != testAccount.CustomerId {
+				t.Errorf("fieldsMap[CustomerId] = %v, want %v", fieldsMap["CustomerId"], testAccount.CustomerId)
+				return
+			}
+			if fieldsMap["AccountId"] != testAccount.AccountId {
+				t.Errorf("fieldsMap[AccountId] = %v, want %v", fieldsMap["AccountId"], testAccount.AccountId)
+				return
+			}
+
+			fieldsMaps, err := twist.ParseToMaps(key)
+			if err != nil {
+				t.Errorf("ParseToMap() error = %v", err)
+				return
+			}
+			if len(fieldsMaps) != 1 {
+				t.Errorf("len(fieldsMaps) = %v, want %v", len(fieldsMaps), 1)
+				return
+			}
+			if fieldsMaps[0]["CustomerId"] != testAccount.CustomerId {
+				t.Errorf("fieldsMaps[0][CustomerId] = %v, want %v", fieldsMaps[0]["CustomerId"], testAccount.CustomerId)
+				return
+			}
+			if fieldsMaps[0]["AccountId"] != testAccount.AccountId {
+				t.Errorf("fieldsMaps[0][AccountId] = %v, want %v", fieldsMaps[0]["AccountId"], testAccount.AccountId)
+				return
+			}
+
+			err = twist.Parse(key, &out)
+			if err != nil {
+				t.Errorf("Parse() error = %v", err)
+				return
+			}
+			if out.CustomerId != testAccount.CustomerId {
+				t.Errorf("out.CustomerId = %v, want %v", out.CustomerId, testAccount.CustomerId)
+				return
+			}
+			if out.AccountId != testAccount.AccountId {
+				t.Errorf("out.AccountId = %v, want %v", out.AccountId, testAccount.AccountId)
+				return
+			}
+		})
 	}
 }
 
@@ -218,38 +255,38 @@ func TestNewError(t *testing.T) {
 		{
 			name:      "field must not start with lowercase letter",
 			template:  "{{invalidField}}",
-			errorType: ErrInvalidField,
-			errorMsg:  "must start with an uppercase letter",
+			errorType: ErrInvalidTemplate,
+			errorMsg:  "field must start with an uppercase letter",
 		},
 		{
 			name:      "field must not start with a number",
 			template:  "{{1InvalidField}}",
-			errorType: ErrInvalidField,
-			errorMsg:  "must start with an uppercase letter",
+			errorType: ErrInvalidTemplate,
+			errorMsg:  "field must start with an uppercase letter",
 		},
 		{
 			name:      "field must not start with an underscore",
 			template:  "{{_InvalidField}}",
-			errorType: ErrInvalidField,
-			errorMsg:  "must start with an uppercase letter",
+			errorType: ErrInvalidTemplate,
+			errorMsg:  "field must start with an uppercase letter",
 		},
 		{
 			name:      "field must not contain special characters",
 			template:  "{{InvalidField@}}",
-			errorType: ErrInvalidField,
-			errorMsg:  "must contain only letters, digits, and underscores",
+			errorType: ErrInvalidTemplate,
+			errorMsg:  "field must contain only letters, digits, and underscores",
 		},
 		{
 			name:      "field must not be empty 1",
 			template:  "{{}}",
-			errorType: ErrInvalidField,
-			errorMsg:  "must not be empty",
+			errorType: ErrInvalidTemplate,
+			errorMsg:  "field must not be empty",
 		},
 		{
 			name:      "field must not be empty 2",
 			template:  "{{    }}",
-			errorType: ErrInvalidField,
-			errorMsg:  "must not be empty",
+			errorType: ErrInvalidTemplate,
+			errorMsg:  "field must not be empty",
 		},
 		{
 			name:      "missing closing brace 1",

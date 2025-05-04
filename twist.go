@@ -6,9 +6,6 @@ import (
 	"strings"
 )
 
-var delimitStart = "{{"
-var delimitEnd = "}}"
-
 type twist struct {
 	original     string
 	fieldParts   []StrPart
@@ -48,11 +45,11 @@ func (t twist) execute(data any) (string, error) {
 		for _, field := range fields {
 			value := v.FieldByName(field)
 			if !value.IsValid() {
-				return "", fmt.Errorf("field '%s' is missing: %w", field, ErrInvalidField)
+				return "", fmt.Errorf("field '%s' is missing: %w", field, ErrInvalidData)
 			}
 			stringValue, err := toString(value.Interface())
 			if err != nil {
-				return "", fmt.Errorf("field '%s' is not stringable: %w", field, ErrInvalidField)
+				return "", fmt.Errorf("field '%s' is not stringable: %w", field, ErrInvalidData)
 			}
 			dataMap[field] = stringValue
 		}
@@ -61,7 +58,7 @@ func (t twist) execute(data any) (string, error) {
 			val := v.MapIndex(key)
 			stringValue, err := toString(val.Interface())
 			if err != nil {
-				return "", fmt.Errorf("field '%s' is not stringable: %w", key.String(), ErrInvalidField)
+				return "", fmt.Errorf("field '%s' is not stringable: %w", key.String(), ErrInvalidData)
 			}
 			dataMap[key.String()] = stringValue
 		}
@@ -75,7 +72,7 @@ func (t twist) execute(data any) (string, error) {
 		// access a variable dynamically from any object of type any
 		dataField, ok := dataMap[field]
 		if !ok {
-			return "", fmt.Errorf("field '%s' is missing: %w", field, ErrInvalidField)
+			return "", fmt.Errorf("field '%s' is missing: %w", field, ErrInvalidData)
 		}
 		result += fmt.Sprintf("%s%s", pretext[i], dataField)
 	}
@@ -83,6 +80,7 @@ func (t twist) execute(data any) (string, error) {
 	return result, nil
 }
 
+// TODO: generator?
 func (t twist) findFieldIndicies(s string) ([][][2]int, error) {
 	results := [][][2]int{}
 	pretext := t.pretext()

@@ -6,9 +6,11 @@ import (
 	"unicode"
 )
 
-func extractFields(s string) ([2][]StrPart, error) {
+func extractFields(s string, delimiters [2]string) ([2][]StrPart, error) {
 	var fields []StrPart = []StrPart{}
 	var pretext []StrPart = []StrPart{}
+	delimitStart := delimiters[0]
+	delimitEnd := delimiters[1]
 	nilResult := [2][]StrPart{{}, {}}
 	currentString := s
 
@@ -35,7 +37,7 @@ func extractFields(s string) ([2][]StrPart, error) {
 
 		field := MustNewStrPart(s, start+len(delimitStart)+offset, end+offset).TrimSpace()
 		if valid, reason := isValidField(field.String()); !valid {
-			return nilResult, fmt.Errorf("%s: %w", reason, ErrInvalidField)
+			return nilResult, fmt.Errorf("%s: %w", reason, ErrInvalidTemplate)
 		}
 		fields = append(fields, field)
 		pretext = append(pretext, MustNewStrPart(s, offset, offset+start))
@@ -49,15 +51,15 @@ func extractFields(s string) ([2][]StrPart, error) {
 
 func isValidField(field string) (bool, string) {
 	if len(field) == 0 {
-		return false, "must not be empty"
+		return false, "field must not be empty"
 	}
 	r := rune(field[0])
 	if !(unicode.IsUpper(r)) {
-		return false, "must start with an uppercase letter"
+		return false, "field must start with an uppercase letter"
 	}
 	for _, r := range field {
 		if !(unicode.IsLetter(r) || unicode.IsDigit(r) || r == '_') {
-			return false, "must contain only letters, digits, and underscores"
+			return false, "field must contain only letters, digits, and underscores"
 		}
 	}
 	return true, ""

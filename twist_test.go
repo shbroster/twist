@@ -155,14 +155,14 @@ func TestTwistExecuteError(t *testing.T) {
 			name:      "missing field (map)",
 			template:  "Hello, {{Name}}",
 			data:      map[string]any{},
-			errorType: ErrInvalidField,
+			errorType: ErrInvalidData,
 			errorMsg:  "field 'Name' is missing",
 		},
 		{
 			name:      "not stringable (map)",
 			template:  "Hello, {{NotStringable}}",
 			data:      map[string]any{"NotStringable": errors.New("Not Stringable")},
-			errorType: ErrInvalidField,
+			errorType: ErrInvalidData,
 			errorMsg:  "field 'NotStringable' is not stringable",
 		},
 		{
@@ -171,14 +171,14 @@ func TestTwistExecuteError(t *testing.T) {
 			data: struct {
 				OtherName string
 			}{},
-			errorType: ErrInvalidField,
+			errorType: ErrInvalidData,
 			errorMsg:  "field 'Name' is missing",
 		},
 		{
 			name:      "not stringable (struct)",
 			template:  "Hello, {{NotStringable}}",
 			data:      struct{ NotStringable error }{NotStringable: errors.New("Not Stringable")},
-			errorType: ErrInvalidField,
+			errorType: ErrInvalidData,
 			errorMsg:  "field 'NotStringable' is not stringable",
 		},
 	}
