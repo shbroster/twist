@@ -80,42 +80,64 @@ func (t twist) execute(data any) (string, error) {
 	return result, nil
 }
 
-// TODO: generator?
-func (t twist) findFieldIndicies(s string) ([][][2]int, error) {
-	results := [][][2]int{}
+type result struct {
+	val [][2]int
+	err error
+}
+
+func errResult(msg string) result {
+	return result{val: nil, err: fmt.Errorf("%s: %w", msg, ErrTemplateMismatch)}
+}
+
+func valResult(val [][2]int) result {
+	return result{val: val, err: nil}
+}
+
+func (t twist) findFieldIndicies(s string) <-chan result {
+	runSearch := true
+	ch := make(chan result, 3)
 	pretext := t.pretext()
+	resultCount := 0
+	var sEnd int
+	var lastPretext string
 
 	// If there are any fields, these will be at least 2 pretexts
 	if len(pretext) <= 1 {
 		if s == pretext[0] {
-			return [][][2]int{{}}, nil
+			ch <- valResult([][2]int{})
+		} else {
+			ch <- errResult("strings do not match")
 		}
-		return nil, fmt.Errorf("strings do not match: %w", ErrTemplateMismatch)
+		runSearch = false
 	} else {
+		// Verify the first pretexts match and then they can be
 		firstPretext := pretext[0]
 		if firstPretext != s[:len(firstPretext)] {
-			return nil, fmt.Errorf("string start does not match template: %w", ErrTemplateMismatch)
+			ch <- errResult("string start does not match template")
+			runSearch = false
+		} else {
+			// The last pretext can never be part of the match so check that it matches
+			// and then exclude from all searches.
+			lastPretext = pretext[len(pretext)-1]
+			sEnd = len(s) - len(lastPretext)
+			if s[sEnd:] != lastPretext {
+				ch <- errResult("string end does not match template")
+				runSearch = false
+			}
 		}
 	}
 
-	// The last pretext can never be part of the match so check that it matches
-	// and then it can be excluded from all searches.
-	lastPretext := pretext[len(pretext)-1]
-	sEnd := len(s) - len(lastPretext)
-	if s[sEnd:] != lastPretext {
-		return nil, fmt.Errorf("string end does not match template: %w", ErrTemplateMismatch)
-	}
-
-	// Function to recursively search for possible pretext mathces.
+	// Function to recursively search for possible pretext matches.
 	var search func(start, pretext int, result [][2]int)
 	search = func(start, pretextIdx int, result [][2]int) {
-		// If we've matches all pretexts, save the result and then return so that we can
+		// If we've matched all pretexts, send the result and then return so that we can
 		// look for other potential matches.
 		if pretextIdx == len(pretext)-1 {
 			result[pretextIdx-1][1] = sEnd
 			var resultCopy = make([][2]int, len(result))
 			copy(resultCopy, result)
-			results = append(results, resultCopy)
+			ch <- valResult(resultCopy)
+			resultCount++
 			return
 		}
 
@@ -143,17 +165,24 @@ func (t twist) findFieldIndicies(s string) ([][][2]int, error) {
 			search(indexStart, pretextIdx+1, result)
 			result = result[:len(result)-1]
 
-			// The first match is fixed so don't conisder other options
+			// The first match is fixed so don't consider other options
 			if pretextIdx == 0 {
 				return
 			}
 		}
 	}
 
-	search(0, 0, [][2]int{})
-
-	if len(results) == 0 {
-		return nil, fmt.Errorf("string does not match template: %w", ErrTemplateMismatch)
+	if runSearch {
+		go func() {
+			search(0, 0, [][2]int{})
+			if resultCount < 1 {
+				ch <- errResult("string does not match template")
+			}
+			close(ch)
+		}()
+	} else {
+		close(ch)
 	}
-	return results, nil
+
+	return ch
 }

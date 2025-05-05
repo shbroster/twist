@@ -64,17 +64,17 @@ func TestMainLine(t *testing.T) {
 				return
 			}
 
-			key, err := twist.Execute(testAccount)
+			resultString, err := twist.Execute(testAccount)
 			if err != nil {
 				t.Errorf("Execute() error = %v", err)
 				return
 			}
-			if key != expectedString {
-				t.Errorf("key = %v, want %v", key, expectedString)
+			if resultString != expectedString {
+				t.Errorf("key = %v, want %v", resultString, expectedString)
 				return
 			}
 
-			fieldsMap, err := twist.ParseToMap(key)
+			fieldsMap, err := twist.ParseToMap(resultString)
 			if err != nil {
 				t.Errorf("ParseToMap() error = %v", err)
 				return
@@ -88,9 +88,9 @@ func TestMainLine(t *testing.T) {
 				return
 			}
 
-			fieldsMaps, err := twist.ParseToMaps(key)
+			fieldsMaps, err := twist.ParseToMaps(resultString)
 			if err != nil {
-				t.Errorf("ParseToMap() error = %v", err)
+				t.Errorf("ParseToMaps() error = %v", err)
 				return
 			}
 			if len(fieldsMaps) != 1 {
@@ -106,7 +106,7 @@ func TestMainLine(t *testing.T) {
 				return
 			}
 
-			err = twist.Parse(key, &out)
+			err = twist.Parse(resultString, &out)
 			if err != nil {
 				t.Errorf("Parse() error = %v", err)
 				return
@@ -416,11 +416,11 @@ func TestParseToMapSuccess(t *testing.T) {
 			}
 			out, err := tmpl.ParseToMap(tt.result)
 			if err != nil {
-				t.Errorf("New.Parse() error = %v", err)
+				t.Errorf("ParseToMap() error = %v", err)
 				return
 			}
 			if diff := cmp.Diff(out, tt.want); diff != "" {
-				t.Errorf("Parse() mismatch (-got +want)\n%s", diff)
+				t.Errorf("ParseToMap() mismatch (-got +want)\n%s", diff)
 			}
 		})
 	}

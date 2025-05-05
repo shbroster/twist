@@ -292,10 +292,14 @@ func TestFindFieldIndiciesSucess(t *testing.T) {
 				t.Errorf("New() error = %v", err)
 				return
 			}
-			results, err := tmpl.findFieldIndicies(tt.result)
-			if err != nil {
-				t.Errorf("template mismatch: %v", err)
-				return
+			ch := tmpl.findFieldIndicies(tt.result)
+			results := [][][2]int{}
+			for result := range ch {
+				if result.err != nil {
+					t.Errorf("template mismatch: %v", result.err)
+					return
+				}
+				results = append(results, result.val)
 			}
 			if diff := cmp.Diff(results, tt.want); diff != "" {
 				t.Errorf("Parse() mismatch (-got +want)\n%s", diff)
@@ -365,7 +369,12 @@ func TestFindFieldIndiciesError(t *testing.T) {
 				t.Errorf("New() error = %v", err)
 				return
 			}
-			_, err = tmpl.findFieldIndicies(tt.result)
+			ch := tmpl.findFieldIndicies(tt.result)
+			chResult, ok := <-ch
+			err = chResult.err
+			if !ok {
+				t.Errorf("findFieldIndicies() channel empty")
+			}
 			if err == nil {
 				t.Errorf("findFieldIndicies() error is nil")
 				return
