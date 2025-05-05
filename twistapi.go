@@ -49,7 +49,7 @@ func WithDelimiters(delimiters [2]string) twistOption {
 
 // New creates a 'twist' and errors if the template is invald.
 //
-// Twists are reversable templates that can be used to create basic string template
+// Twists are reversible templates that can be used to create basic string template
 // using {{ and }} as delimeters by default.
 func New(s string, opts ...twistOption) (twist, error) {
 	config := twistConfig{Delimiters: [2]string{"{{", "}}"}}
@@ -175,7 +175,7 @@ func (t twist) ParseToMaps(s string) ([]map[string]string, error) {
 //
 // The parsed data is cast to the appropriate type and stored in the provided struct.
 //
-// If the provided string could have been generated using multipe different data sets
+// If the provided string could have been generated using multiple different data sets
 // then this function errors. The ParseToMaps function  can be used to get all possible data
 // sets.
 func (t twist) Parse(s string, out any) error {

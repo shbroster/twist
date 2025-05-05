@@ -228,7 +228,7 @@ func TestFindFieldIndiciesSucess(t *testing.T) {
 		},
 		{
 			name:     "single match in middle",
-			template: "Hello{{Seperator}}World",
+			template: "Hello{{Separator}}World",
 			result:   "Hello, World",
 			want:     [][][2]int{{[2]int{5, 7}}},
 		},
@@ -257,7 +257,7 @@ func TestFindFieldIndiciesSucess(t *testing.T) {
 			want:     [][][2]int{{}},
 		},
 		{
-			name:     "mutliple matches, common seperator",
+			name:     "multiple matches, common separator",
 			template: "{{First}}-{{Seconds}}",
 			result:   "----",
 			want: [][][2]int{
@@ -268,7 +268,7 @@ func TestFindFieldIndiciesSucess(t *testing.T) {
 			},
 		},
 		{
-			name:     "multiple matches, no seperator",
+			name:     "multiple matches, no separator",
 			template: "...{{Name}}{{Age}}...",
 			result:   "...12345678...",
 			want: [][][2]int{

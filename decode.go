@@ -8,18 +8,9 @@ import (
 
 func decode(input map[string]string, out any) error {
 	// Validate that 'out' is a pointer to a struct
-	outVal := reflect.ValueOf(out)
-	if kind := outVal.Kind(); kind != reflect.Ptr || outVal.IsNil() {
-		return fmt.Errorf("out must be a non-nil pointer but got '%s': %w", kind, ErrInvalidData)
-	}
-	for outVal.Kind() == reflect.Ptr || outVal.Kind() == reflect.Interface {
-		outVal = outVal.Elem()
-		if !outVal.IsValid() {
-			return fmt.Errorf("out must point to a valid struct: %w", ErrInvalidData)
-		}
-	}
-	if outVal.Kind() != reflect.Struct {
-		return fmt.Errorf("out must point to a struct but got '%s': %w", outVal.Kind(), ErrInvalidData)
+	outVal, err := validateOut(out)
+	if err != nil {
+		return err
 	}
 
 	// Write fields to the data struct and convert to the correct type
@@ -84,4 +75,21 @@ func decode(input map[string]string, out any) error {
 		}
 	}
 	return nil
+}
+
+func validateOut(out any) (reflect.Value, error) {
+	outVal := reflect.ValueOf(out)
+	if kind := outVal.Kind(); kind != reflect.Ptr || outVal.IsNil() {
+		return reflect.Value{}, fmt.Errorf("out must be a non-nil pointer but got '%s': %w", kind, ErrInvalidData)
+	}
+	for outVal.Kind() == reflect.Ptr || outVal.Kind() == reflect.Interface {
+		outVal = outVal.Elem()
+		if !outVal.IsValid() {
+			return reflect.Value{}, fmt.Errorf("out must point to a valid struct: %w", ErrInvalidData)
+		}
+	}
+	if outVal.Kind() != reflect.Struct {
+		return reflect.Value{}, fmt.Errorf("out must point to a struct but got '%s': %w", outVal.Kind(), ErrInvalidData)
+	}
+	return outVal, nil
 }
