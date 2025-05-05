@@ -57,7 +57,7 @@ func TestMainLine(t *testing.T) {
 			if tt.delimiters == [2]string{"{{", "}}"} {
 				twist, err = New(templateString)
 			} else {
-				twist, err = NewWithConfig(templateString, TwistConfig{Delimiters: tt.delimiters})
+				twist, err = New(templateString, WithDelimiters(tt.delimiters))
 			}
 			if err != nil {
 				t.Errorf("New() error = %v", err)
