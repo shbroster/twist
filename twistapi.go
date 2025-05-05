@@ -5,7 +5,6 @@ import (
 	"fmt"
 )
 
-// TODO: Document and rationalize the error types.
 var (
 	// ErrTwist is the base error for all twist errors.
 	ErrTwist = errors.New("twist error")
@@ -27,14 +26,16 @@ var (
 	ErrAmbiguousTemplate = fmt.Errorf("%w: template is ambiguous", ErrTwist)
 )
 
-type TwistConfig struct {
+type twistConfig struct {
 	Delimiters [2]string
 }
 
-type TwistOption func(*TwistConfig) error
+type twistOption func(*twistConfig) error
 
-func WithDelimiters(delimiters [2]string) TwistOption {
-	return func(c *TwistConfig) error {
+// When creating a 'twist' with `New` this function creates a twist with a custom
+// set of delimeters, by default '{{' and '}}' are used as delimeters.
+func WithDelimiters(delimiters [2]string) twistOption {
+	return func(c *twistConfig) error {
 		if delimiters[0] == delimiters[1] {
 			return fmt.Errorf("delimeters must not match: %w", ErrInvalidConfig)
 		}
@@ -50,8 +51,8 @@ func WithDelimiters(delimiters [2]string) TwistOption {
 //
 // Twists are reversable templates that can be used to create basic string template
 // using {{ and }} as delimeters by default.
-func New(s string, opts ...TwistOption) (twist, error) {
-	config := TwistConfig{Delimiters: [2]string{"{{", "}}"}}
+func New(s string, opts ...twistOption) (twist, error) {
+	config := twistConfig{Delimiters: [2]string{"{{", "}}"}}
 	for _, opt := range opts {
 		if err := opt(&config); err != nil {
 			return twist{}, err
@@ -69,8 +70,8 @@ func New(s string, opts ...TwistOption) (twist, error) {
 	}, nil
 }
 
-// MustNew is a convenience function that wraps New and panics if the template is invalid.
-func MustNew(s string, opts ...TwistOption) twist {
+// MustNew is a convenience function that wraps `New` and panics if the template is invalid.
+func MustNew(s string, opts ...twistOption) twist {
 	result, err := New(s, opts...)
 	if err != nil {
 		panic(err)
@@ -82,16 +83,19 @@ type executeConfig struct {
 	ForceUnique bool
 }
 
-type ExecuteOption func(*executeConfig)
+type executeOption func(*executeConfig)
 
-func WithUnique() ExecuteOption {
+// When `Executing` a template this option causes an error to be returned if the
+// resulting string cannot be used to recreate the original data passed into the
+// template.
+func WithUnique() executeOption {
 	return func(o *executeConfig) {
 		o.ForceUnique = true
 	}
 }
 
 // Execute executes the template with the given data and returns the generated string.
-func (t twist) Execute(data any, opts ...ExecuteOption) (string, error) {
+func (t twist) Execute(data any, opts ...executeOption) (string, error) {
 	config := executeConfig{
 		ForceUnique: false,
 	}
