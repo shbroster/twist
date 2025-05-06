@@ -108,8 +108,8 @@ func TestStrPartFailure(t *testing.T) {
 				t.Errorf("Expected error, got nil")
 				return
 			}
-			if !errors.Is(err, ErrInvalidStrPart) {
-				t.Errorf("Expected error %v, got %v", ErrInvalidStrPart, err)
+			if !errors.Is(err, errInvalidStrPart) {
+				t.Errorf("Expected error %v, got %v", errInvalidStrPart, err)
 				return
 			}
 		})

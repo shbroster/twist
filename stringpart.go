@@ -14,17 +14,17 @@ type strPart struct {
 }
 
 var (
-	ErrInvalidStrPart = errors.New("Invalid strPart")
+	errInvalidStrPart = errors.New("invalid strPart")
 )
 
 // Construct a new strPart
 func newStrPart(s string, start, end int) (strPart, error) {
 	if start < 0 {
-		return strPart{}, fmt.Errorf("start out of bounds: %w", ErrInvalidStrPart)
+		return strPart{}, fmt.Errorf("start out of bounds: %w", errInvalidStrPart)
 	} else if start > end {
-		return strPart{}, fmt.Errorf("start greater than end: %w", ErrInvalidStrPart)
+		return strPart{}, fmt.Errorf("start greater than end: %w", errInvalidStrPart)
 	} else if end > len(s) {
-		return strPart{}, fmt.Errorf("end out of bounds: %w", ErrInvalidStrPart)
+		return strPart{}, fmt.Errorf("end out of bounds: %w", errInvalidStrPart)
 	}
 
 	return strPart{original: s, Start: start, End: end}, nil
