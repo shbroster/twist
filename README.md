@@ -22,6 +22,8 @@ go get github.com/shbroster/twist
 
 ## Examples
 
+See the [go docs](https://pkg.go.dev/github.com/shbroster/twist) for examples.  
+
 ## License
 
 The project is licensed under the [MIT License](./LICENSE).
