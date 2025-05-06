@@ -9,8 +9,8 @@ import (
 // A reference to a subset of a string
 type strPart struct {
 	original string
-	Start    int
-	End      int
+	start    int
+	end      int
 }
 
 var (
@@ -27,7 +27,7 @@ func newStrPart(s string, start, end int) (strPart, error) {
 		return strPart{}, fmt.Errorf("end out of bounds: %w", errInvalidStrPart)
 	}
 
-	return strPart{original: s, Start: start, End: end}, nil
+	return strPart{original: s, start: start, end: end}, nil
 }
 
 // Construct a new strPart. Panics if arguments are invalid.
@@ -41,13 +41,13 @@ func mustNewStrPart(s string, start, end int) strPart {
 
 // Return the substring that strPart refers to
 func (p strPart) String() string {
-	return p.original[p.Start:p.End]
+	return p.original[p.start:p.end]
 }
 
 // Construct a new strPart that has it's whitespace trimmed
 func (p strPart) TrimSpace() strPart {
-	start := p.Start
-	end := p.End
+	start := p.start
+	end := p.end
 	for start < end && unicode.IsSpace(rune(p.original[start])) {
 		start++
 	}
@@ -60,11 +60,11 @@ func (p strPart) TrimSpace() strPart {
 
 // Compare two strParts to see if their strings are equal
 func (p strPart) Matches(other strPart) bool {
-	if p.End-p.Start != other.End-other.Start {
+	if p.end-p.start != other.end-other.start {
 		return false
 	}
-	for i := 0; i < p.End-p.Start; i++ {
-		if p.original[p.Start+i] != other.original[other.Start+i] {
+	for i := 0; i < p.end-p.start; i++ {
+		if p.original[p.start+i] != other.original[other.start+i] {
 			return false
 		}
 	}
