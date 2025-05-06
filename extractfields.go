@@ -6,12 +6,12 @@ import (
 	"unicode"
 )
 
-func extractFields(s string, delimiters [2]string) ([2][]StrPart, error) {
-	var fields []StrPart = []StrPart{}
-	var pretext []StrPart = []StrPart{}
+func extractFields(s string, delimiters [2]string) ([2][]strPart, error) {
+	var fields []strPart = []strPart{}
+	var pretext []strPart = []strPart{}
 	delimitStart := delimiters[0]
 	delimitEnd := delimiters[1]
-	nilResult := [2][]StrPart{{}, {}}
+	nilResult := [2][]strPart{{}, {}}
 	currentString := s
 
 	offset := 0
@@ -35,18 +35,18 @@ func extractFields(s string, delimiters [2]string) ([2][]StrPart, error) {
 			return nilResult, fmt.Errorf("nested delimiters: %w", ErrInvalidTemplate)
 		}
 
-		field := MustNewStrPart(s, start+len(delimitStart)+offset, end+offset).TrimSpace()
+		field := mustNewStrPart(s, start+len(delimitStart)+offset, end+offset).TrimSpace()
 		if valid, reason := isValidField(field.String()); !valid {
 			return nilResult, fmt.Errorf("%s: %w", reason, ErrInvalidTemplate)
 		}
 		fields = append(fields, field)
-		pretext = append(pretext, MustNewStrPart(s, offset, offset+start))
+		pretext = append(pretext, mustNewStrPart(s, offset, offset+start))
 
 		offset += end + len(delimitEnd)
 		currentString = currentString[end+len(delimitEnd):]
 	}
-	pretext = append(pretext, MustNewStrPart(s, offset, len(s)))
-	return [2][]StrPart{fields, pretext}, nil
+	pretext = append(pretext, mustNewStrPart(s, offset, len(s)))
+	return [2][]strPart{fields, pretext}, nil
 }
 
 func isValidField(field string) (bool, string) {

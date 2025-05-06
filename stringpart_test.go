@@ -55,7 +55,7 @@ func TestStrPartSucess(t *testing.T) {
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
 			original := testCase.original
-			part, err := NewStrPart(original, 0, len(original))
+			part, err := newStrPart(original, 0, len(original))
 			if err != nil {
 				t.Errorf("Invalid args: %v", err)
 				return
@@ -103,7 +103,7 @@ func TestStrPartFailure(t *testing.T) {
 
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
-			_, err := NewStrPart(testCase.original, testCase.start, testCase.end)
+			_, err := newStrPart(testCase.original, testCase.start, testCase.end)
 			if err == nil {
 				t.Errorf("Expected error, got nil")
 				return
@@ -119,52 +119,52 @@ func TestStrPartFailure(t *testing.T) {
 func TestStrPartEquals(t *testing.T) {
 	type testCase struct {
 		name     string
-		original StrPart
-		other    StrPart
+		original strPart
+		other    strPart
 		want     bool
 	}
 
 	testCases := []testCase{
 		{
 			name:     "exactly equal",
-			original: MustNewStrPart("Hello, World!", 0, 13),
-			other:    MustNewStrPart("Hello, World!", 0, 13),
+			original: mustNewStrPart("Hello, World!", 0, 13),
+			other:    mustNewStrPart("Hello, World!", 0, 13),
 			want:     true,
 		},
 		{
 			name:     "partially equal",
-			original: MustNewStrPart("Hello, World!", 0, 13),
-			other:    MustNewStrPart(" Hello, World! ", 1, 14),
+			original: mustNewStrPart("Hello, World!", 0, 13),
+			other:    mustNewStrPart(" Hello, World! ", 1, 14),
 			want:     true,
 		},
 		{
 			name:     "empty",
-			original: MustNewStrPart("", 0, 0),
-			other:    MustNewStrPart("", 0, 0),
+			original: mustNewStrPart("", 0, 0),
+			other:    mustNewStrPart("", 0, 0),
 			want:     true,
 		},
 		{
 			name:     "empty other",
-			original: MustNewStrPart("Hello, World!", 0, 13),
-			other:    MustNewStrPart("", 0, 0),
+			original: mustNewStrPart("Hello, World!", 0, 13),
+			other:    mustNewStrPart("", 0, 0),
 			want:     false,
 		},
 		{
 			name:     "different",
-			original: MustNewStrPart("Hello, World!", 0, 13),
-			other:    MustNewStrPart("Hello, Universe!", 0, 13),
+			original: mustNewStrPart("Hello, World!", 0, 13),
+			other:    mustNewStrPart("Hello, Universe!", 0, 13),
 			want:     false,
 		},
 		{
 			name:     "longer",
-			original: MustNewStrPart("Hello, World!", 0, 2),
-			other:    MustNewStrPart("Hello, World!", 0, 3),
+			original: mustNewStrPart("Hello, World!", 0, 2),
+			other:    mustNewStrPart("Hello, World!", 0, 3),
 			want:     false,
 		},
 		{
 			name:     "shorter",
-			original: MustNewStrPart("Hello, World!", 0, 3),
-			other:    MustNewStrPart("Hello, World!", 0, 2),
+			original: mustNewStrPart("Hello, World!", 0, 3),
+			other:    mustNewStrPart("Hello, World!", 0, 2),
 			want:     false,
 		},
 	}

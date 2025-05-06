@@ -8,8 +8,8 @@ import (
 
 type twist struct {
 	original     string
-	fieldParts   []StrPart
-	pretextParts []StrPart
+	fieldParts   []strPart
+	pretextParts []strPart
 }
 
 func (t twist) fields() []string {

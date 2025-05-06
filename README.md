@@ -16,5 +16,15 @@ Twist is a Go library for creating reversible string templates. It allows you to
 
 ## Installation
 
+```sh
+go get https://github.com/shbroster/twist
+```
 
 ## Examples
+
+
+
+
+## License
+
+The project is licensed under the [MIT License](./LICENSE).
