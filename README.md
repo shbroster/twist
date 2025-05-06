@@ -22,9 +22,6 @@ go get https://github.com/shbroster/twist
 
 ## Examples
 
-
-
-
 ## License
 
 The project is licensed under the [MIT License](./LICENSE).

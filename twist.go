@@ -6,13 +6,14 @@ import (
 	"strings"
 )
 
-type twist struct {
+// Twist - a reversible template
+type Twist struct {
 	original     string
 	fieldParts   []strPart
 	pretextParts []strPart
 }
 
-func (t twist) fields() []string {
+func (t Twist) fields() []string {
 	result := make([]string, len(t.fieldParts))
 	for i, p := range t.fieldParts {
 		result[i] = p.String()
@@ -20,7 +21,7 @@ func (t twist) fields() []string {
 	return result
 }
 
-func (t twist) pretext() []string {
+func (t Twist) pretext() []string {
 	result := make([]string, len(t.pretextParts))
 	for i, p := range t.pretextParts {
 		result[i] = p.String()
@@ -28,7 +29,7 @@ func (t twist) pretext() []string {
 	return result
 }
 
-func (t twist) execute(data any) (string, error) {
+func (t Twist) execute(data any) (string, error) {
 	fields := t.fields()
 	pretext := t.pretext()
 
@@ -93,7 +94,7 @@ func valResult(val [][2]int) result {
 	return result{val: val, err: nil}
 }
 
-func (t twist) findFieldIndicies(s string) <-chan result {
+func (t Twist) findFieldIndicies(s string) <-chan result {
 	runSearch := true
 	ch := make(chan result, 3)
 	pretext := t.pretext()

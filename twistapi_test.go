@@ -52,7 +52,7 @@ func TestMainLine(t *testing.T) {
 			templateString := fmt.Sprintf(fmtStr, customerPlaceholder, accountPlaceholder)
 			var out = Account{}
 
-			var twist twist
+			var twist Twist
 			var err error
 			if tt.delimiters == [2]string{"{{", "}}"} {
 				twist, err = New(templateString)
